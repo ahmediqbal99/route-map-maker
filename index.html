@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Route Map Maker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header id="topbar">
+    <button id="menu-toggle" title="Show/hide tools" aria-label="Toggle tools">☰</button>
+    <div class="brand">🗺️ Route Map Maker</div>
+    <div class="actions">
+      <button id="btn-save" title="Save to browser">💾 Save</button>
+      <button id="btn-export-json" title="Download project file">⬇️ Export</button>
+      <label class="filebtn" title="Load project file">⬆️ Import
+        <input id="file-import" type="file" accept="application/json" hidden />
+      </label>
+      <button id="btn-png" class="primary" title="Export the map as a PNG image">🖼️ Export PNG</button>
+    </div>
+  </header>
+
+  <div id="layout">
+    <aside id="sidebar">
+      <section>
+        <h3>Find location</h3>
+        <div class="search">
+          <input id="search-input" type="text" placeholder="Search address or place…" autocomplete="off" />
+          <button id="search-btn" title="Search">🔍</button>
+        </div>
+        <div id="search-results"></div>
+      </section>
+
+      <section>
+        <h3>Base map</h3>
+        <div class="seg">
+          <button class="base-btn active" data-base="sat">Satellite</button>
+          <button class="base-btn" data-base="street">Street</button>
+          <button class="base-btn" data-base="hybrid">Hybrid</button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Add icon <span class="hint">click tool, then click map</span></h3>
+        <div id="icon-palette" class="palette"></div>
+        <label class="sizerow">Icon size
+          <input type="range" id="icon-size" min="0.55" max="1.8" step="0.05" value="1" />
+        </label>
+      </section>
+
+      <section>
+        <h3>Annotations</h3>
+        <button class="tool" data-tool="callout">🟨 Callout box</button>
+        <button class="tool" data-tool="route">➡️ Route arrow</button>
+        <button class="tool" data-tool="select">🖐️ Select / move</button>
+        <label class="sizerow">Callout size
+          <input type="range" id="callout-size" min="0.55" max="1.8" step="0.05" value="1" />
+        </label>
+      </section>
+
+      <section>
+        <h3>Selected route</h3>
+        <div class="row">
+          <label>Color <input type="color" id="route-color" value="#1e90ff" /></label>
+          <label>Width <input type="range" id="route-width" min="2" max="16" value="7" /></label>
+        </div>
+        <p class="muted small" id="route-hint">Click points on the map to draw. Double-click to finish.</p>
+      </section>
+
+      <section>
+        <h3>Legend</h3>
+        <label class="check"><input type="checkbox" id="show-legend" checked /> Show legend on map</label>
+        <div id="legend-editor"></div>
+      </section>
+
+      <p class="muted small">Tip: double-click any icon or callout to edit its text. Select tool + click an item, then press <kbd>Delete</kbd> to remove it.</p>
+    </aside>
+
+    <div id="backdrop"></div>
+    <main id="map-wrap">
+      <div id="map"></div>
+      <div id="map-title" contenteditable="true" spellcheck="false">Security Arrangements — click to edit title</div>
+      <div id="legend-box"></div>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 
 const ICONS = [
   { key: 'mobile',    emo: '🚓', name: 'Mobile Unit' },
+  { key: 'bike',      emo: '🏍️', name: 'Police Bike' },
   { key: 'police',    emo: '👮', name: 'HC / PC' },
   { key: 'lady',      emo: '👩‍✈️', name: 'Lady Police' },
   { key: 'asi',       emo: '⭐', name: 'ASI / SI' },
@@ -101,6 +102,16 @@ function select(item) {
     document.getElementById('route-color').value = item.color;
     document.getElementById('route-width').value = item.width;
   }
+  updateActions();
+}
+
+/* Floating action bar for the selected item (touch-friendly edit/delete) */
+function updateActions() {
+  const bar = document.getElementById('item-actions');
+  if (!bar) return;
+  if (!selected) { bar.hidden = true; return; }
+  bar.hidden = false;
+  document.getElementById('ia-edit').style.display = selected.edit ? '' : 'none';
 }
 
 /* ---------- Icon markers ---------- */
@@ -125,14 +136,15 @@ function addIcon(latlng, key, label) {
 function wireMarker(item) {
   const el = item.el;
   const lbl = el.querySelector('.lbl');
-  el.addEventListener('mousedown', (e) => { if (tool === 'select') select(item); });
-  el.addEventListener('dblclick', (e) => {
-    e.stopPropagation();
+  item.marker.on('click', () => select(item));
+  item.edit = () => {
+    select(item);
     item.marker.dragging.disable();
     lbl.setAttribute('contenteditable', 'true');
     lbl.focus();
-    document.execCommand && document.getSelection().selectAllChildren(lbl);
-  });
+    window.getSelection().selectAllChildren(lbl);
+  };
+  el.addEventListener('dblclick', (e) => { e.stopPropagation(); item.edit(); });
   lbl.addEventListener('blur', () => {
     lbl.removeAttribute('contenteditable');
     item.marker.dragging.enable();
@@ -152,14 +164,18 @@ function addCallout(latlng, title, body) {
     item.el = marker.getElement().querySelector('.callout');
     const ttl = item.el.querySelector('.ttl');
     const body = item.el.querySelector('.body');
-    item.el.addEventListener('mousedown', () => { if (tool === 'select') select(item); });
-    item.el.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      const f = e.target.closest('.body') ? body : ttl;
+    marker.on('click', () => select(item));
+    const editField = (f) => {
+      select(item);
       marker.dragging.disable();
       f.setAttribute('contenteditable', 'true');
       f.focus();
       window.getSelection().selectAllChildren(f);
+    };
+    item.edit = () => editField(ttl);
+    item.el.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      editField(e.target.closest('.body') ? body : ttl);
     });
     [ttl, body].forEach(f => {
       f.addEventListener('blur', () => { f.removeAttribute('contenteditable'); marker.dragging.enable(); });
@@ -208,10 +224,11 @@ function addVertex(route, latlng) {
   route.latlngs.push(latlng);
   const vm = L.marker(latlng, {
     draggable: true,
-    icon: L.divIcon({ className: '', html: '<div class="vertex" style="width:12px;height:12px"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }),
+    icon: L.divIcon({ className: '', html: '<div class="vertex" style="width:16px;height:16px"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
   }).addTo(map);
   const idx = route.vertices.length;
   vm.on('drag', () => { route.latlngs[idx] = vm.getLatLng(); redrawRoute(route); });
+  vm.on('click', () => { if (tool === 'select') select(route); });
   route.vertices.push(vm);
   redrawRoute(route);
 }
@@ -253,15 +270,20 @@ function removeItem(item) {
   if (item.decorator) map.removeLayer(item.decorator);
   if (item.vertices) item.vertices.forEach(v => map.removeLayer(v));
   items.delete(item);
-  if (selected === item) selected = null;
+  if (selected === item) { selected = null; updateActions(); }
 }
 document.addEventListener('keydown', (e) => {
   if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
     const editing = document.activeElement && document.activeElement.getAttribute('contenteditable') === 'true';
     if (editing) return;
-    removeItem(selected); selected = null;
+    removeItem(selected); selected = null; updateActions();
   }
 });
+
+/* ---------- Floating action bar buttons ---------- */
+document.getElementById('ia-edit').addEventListener('click', () => { if (selected && selected.edit) selected.edit(); });
+document.getElementById('ia-delete').addEventListener('click', () => { if (selected) { removeItem(selected); select(null); } });
+document.getElementById('ia-close').addEventListener('click', () => select(null));
 
 /* ---------- Legend ---------- */
 const legendState = new Map(); // key -> label
@@ -299,9 +321,10 @@ function renderLegendBox() {
     const span = document.createElement('span');
     span.className = 'lg-label';
     span.textContent = label;
-    span.title = 'Double-click to edit';
-    span.addEventListener('dblclick', (e) => {
+    span.title = 'Tap to edit';
+    span.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (span.getAttribute('contenteditable') === 'true') return;
       span.setAttribute('contenteditable', 'true');
       span.focus();
       window.getSelection().selectAllChildren(span);

@@ -262,6 +262,16 @@ map.on('click', (e) => {
 });
 map.on('dblclick', (e) => { if (tool === 'route') { L.DomEvent.stop(e); finishRoute(); } });
 
+/* The polyline decorator (arrowhead) does not auto-redraw on zoom/pan — refresh it. */
+map.on('zoomend moveend', () => {
+  items.forEach(it => {
+    if (it.type === 'route' && it.latlngs.length >= 2) {
+      it.decorator.setPaths(it.polyline);
+      styleRoute(it, selected === it);
+    }
+  });
+});
+
 /* ---------- Delete ---------- */
 function removeItem(item) {
   if (!item) return;
